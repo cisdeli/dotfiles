@@ -1,6 +1,7 @@
 # My Neovim config files
 ## to-Do
 - [x] Setup an auto pair plugin (autoclose).
+- [x] Remove the auto pair plugin (autoclose).
 - [x] Make home page better looking (remove banner from Netrw).
 - [ ] Install fugitive.
 - [x] Install harpoon.

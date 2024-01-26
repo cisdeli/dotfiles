@@ -31,7 +31,6 @@ local plugins = {
     {'hrsh7th/nvim-cmp'},
     {'L3MON4D3/LuaSnip'},
     { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
-    {"m4xshen/autoclose.nvim"},
     {'mbbill/undotree'},
     {'theprimeagen/harpoon'},
 }
@@ -70,9 +69,6 @@ vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)
 
 -- Indent blakline
 require("ibl").setup()
-
--- Autoclose
-require("autoclose").setup()
 
 -- LSP-zero
 local lsp_zero = require('lsp-zero')

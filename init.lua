@@ -33,6 +33,15 @@ local plugins = {
     { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
     {'mbbill/undotree'},
     {'theprimeagen/harpoon'},
+    {
+        "folke/which-key.nvim",
+        event = "VeryLazy",
+        init = function()
+            vim.o.timeout = true
+            vim.o.timeoutlen = 300
+        end,
+        opts = {}
+    }
 }
 local opts = {}
 
@@ -102,6 +111,10 @@ null_ls.setup({
     null_ls.builtins.formatting.black,
   },
 })
+
+-- Which Key
+local wk = require("which-key")
+wk.register(mappings, opts)
 
 -- Theme
 require('rose-pine').setup({

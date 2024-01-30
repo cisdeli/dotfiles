@@ -33,6 +33,7 @@ local plugins = {
     { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
     {'mbbill/undotree'},
     {'theprimeagen/harpoon'},
+    {'terrortylor/nvim-comment'},
     {
         "folke/which-key.nvim",
         event = "VeryLazy",
@@ -118,6 +119,9 @@ null_ls.setup({
     null_ls.builtins.formatting.black,
   },
 })
+
+-- Comment
+require('nvim_comment').setup()
 
 -- Which Key
 local wk = require("which-key")

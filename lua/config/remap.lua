@@ -27,6 +27,12 @@ vim.keymap.set("n", "<C-j>", "<cmd>cprev<CR>zz")
 vim.keymap.set("n", "<leader>k", "<cmd>lnext<CR>zz")
 vim.keymap.set("n", "<leader>j", "<cmd>lprev<CR>zz")
 
+-- Remaping navigation keys on insert mode
+vim.api.nvim_set_keymap('i', '<M-k>', '<Esc>:normal! k<CR>a', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('i', '<M-j>', '<Esc>:normal! j<CR>a', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('i', '<M-h>', '<Esc>:normal! h<CR>a', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('i', '<M-l>', '<Esc>:normal! l<CR>a', { noremap = true, silent = true })
+
 -- Replace the word on cursor position
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 

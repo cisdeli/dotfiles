@@ -1,6 +1,3 @@
-vim.opt.guicursor = ""
--- Use this line to fix guicursor
--- vim.opt.guicursor = "i-ci-ve:hor30"
 vim.g.netrw_banner = 0
 
 vim.cmd("set expandtab")

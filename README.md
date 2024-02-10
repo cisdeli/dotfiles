@@ -18,6 +18,7 @@
     * No reason to do this really.
     * Either port from notebooks to regular .py files or keep using vscode.
 - [ ] Refactor init.lua to use multiple files.
+ - [ ] Create a file for themes.
 - [x] Install nvim-comment.
 - [x] Bind M-j,M-h, M-k and M-l to navigate on insert mode.
 

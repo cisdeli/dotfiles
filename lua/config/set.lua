@@ -1,5 +1,7 @@
 vim.g.netrw_banner = 0
 
+vim.cmd("set spell")
+
 vim.cmd("set expandtab")
 vim.cmd("set tabstop=4")
 vim.cmd("set softtabstop=4")

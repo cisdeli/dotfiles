@@ -1,3 +1,4 @@
+require("core.plugin_config.alpha")
 require("core.plugin_config.theme")
 require("core.plugin_config.treesitter")
 require("core.plugin_config.telescope")

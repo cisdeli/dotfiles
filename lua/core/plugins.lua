@@ -32,5 +32,9 @@ require("lazy").setup({
             vim.o.timeoutlen = 300
         end,
         opts = {}
-    }
+    },
+    {
+        "goolord/alpha-nvim",
+        lazy = true,
+    },
 })

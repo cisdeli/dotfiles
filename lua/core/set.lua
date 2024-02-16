@@ -1,5 +1,7 @@
 vim.g.netrw_banner = 0
 
+vim.opt.guicursor = "n-v-c:blinkon0"
+
 vim.cmd("set spell")
 
 vim.cmd("set expandtab")
@@ -32,19 +34,3 @@ vim.opt.isfname:append("@-@")
 vim.opt.updatetime = 50
 
 vim.opt.colorcolumn = "80"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

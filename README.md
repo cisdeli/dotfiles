@@ -3,7 +3,7 @@
 - [x] Setup an auto pair plugin (autoclose).
 - [x] Remove the auto pair plugin (autoclose).
 - [x] Make home page better looking (remove banner from Netrw).
-- [ ] Install fugitive.
+- [ ] Install lazygit.
 - [x] Install harpoon.
     - [ ] Link harpoon to telescope.
     - [ ] Learn how to remove added pages.
@@ -17,8 +17,8 @@
 - [ ] ~~support for jupyter notebook files~~
     * No reason to do this really.
     * Either port from notebooks to regular .py files or keep using vscode.
-- [ ] Refactor init.lua to use multiple files.
- - [ ] Create a file for themes.
+- [x] Refactor init.lua to use multiple files.
+ - [x] Create a file for themes.
 - [x] Install nvim-comment.
 - [x] Bind M-j,M-h, M-k and M-l to navigate on insert mode.
 

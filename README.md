@@ -21,6 +21,7 @@
  - [x] Create a file for themes.
 - [x] Install nvim-comment.
 - [x] Bind M-j,M-h, M-k and M-l to navigate on insert mode.
+- [ ] Install oil and oil-vsc-status. 
 
 ## Keymaps
 - S-o is the opposite of o.

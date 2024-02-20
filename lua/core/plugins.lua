@@ -25,6 +25,10 @@ require("lazy").setup({
     { 'theprimeagen/harpoon' },
     { 'terrortylor/nvim-comment' },
     {
+        'sourcegraph/sg.nvim',
+        dependencies = { "nvim-lua/plenary.nvim"}
+    },
+    {
         "folke/which-key.nvim",
         event = "VeryLazy",
         init = function()

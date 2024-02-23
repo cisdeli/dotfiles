@@ -27,3 +27,12 @@
 - S-o is the opposite of o.
 - S-i enter insert mode on the begining of the line.
 - C-space goes to the start of the line ignoring tab spaces
+- F is f but backwards.
+- _i followed by "{( gets what is inside the characters.
+- _a followed by "{( gets what is inside and the characters.
+    - example: vi( or ya[ or di"
+    - example2: viW selects the continuous text under the cursor.
+    - example3: diW delete the continuous text under the cursor.
+    - example3.1: ciW delete the continuous text under the cursor.
+- r replaces the char under the cursor.
+

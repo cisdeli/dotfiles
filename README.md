@@ -21,13 +21,14 @@
  - [x] Create a file for themes.
 - [x] Install nvim-comment.
 - [x] Bind M-j,M-h, M-k and M-l to navigate on insert mode.
-- [ ] Install oil and oil-vsc-status. 
+- [x] Install lualine.
 
 ## Keymaps
 - S-o is the opposite of o.
 - S-i enter insert mode on the begining of the line.
 - C-space goes to the start of the line ignoring tab spaces
 - F is f but backwards.
+- D deletes the whole line in front of the cursor.
 - _i followed by "{( gets what is inside the characters.
 - _a followed by "{( gets what is inside and the characters.
     - example: vi( or ya[ or di"

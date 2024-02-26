@@ -25,8 +25,12 @@ require("lazy").setup({
     { 'theprimeagen/harpoon' },
     { 'terrortylor/nvim-comment' },
     {
+        'nvim-lualine/lualine.nvim',
+        dependencies = { 'nvim-tree/nvim-web-devicons' }
+    },
+    {
         'sourcegraph/sg.nvim',
-        dependencies = { "nvim-lua/plenary.nvim"}
+        dependencies = { "nvim-lua/plenary.nvim" }
     },
     {
         "folke/which-key.nvim",

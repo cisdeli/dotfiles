@@ -11,6 +11,8 @@ require('telescope').setup({
                 "!**/node_modules/*",
                 "-g",
                 "!**/.git/*",
+                "-g",
+                "!**/.tmux/*",
             },
         },
     },

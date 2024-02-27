@@ -58,6 +58,13 @@ fi
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
+# Exports
+export PATH="/snap/bin:$PATH"
+source "$HOME/.cargo/env"
+
+# Banner
+echo "$(cat $HOME/dotfiles/banner)" | lolcat
+
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/pedro/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
@@ -73,7 +80,6 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-source "$HOME/.cargo/env"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

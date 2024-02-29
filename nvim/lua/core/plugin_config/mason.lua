@@ -9,5 +9,5 @@ require('mason-lspconfig').setup({
 })
 
 require("mason-null-ls").setup({
-    ensure_installed = { "black" }
+    ensure_installed = { "black", "clang_format"}
 })

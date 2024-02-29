@@ -13,6 +13,8 @@ require('telescope').setup({
                 "!**/.git/*",
                 "-g",
                 "!**/.tmux/*",
+                "-g",
+                "!**/target/debug/*",
             },
         },
     },

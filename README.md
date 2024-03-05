@@ -18,4 +18,5 @@ ln -s ~/dotfiles/nvim .config/nvim
 		* zsh-autosuggestions.
 		* need to install the recommended font.
 		* need to install the tmux plugins or pull the original repo with this repo.
+		* Telescope requires ripgrep
 - [ ] Create dependencies list.

@@ -37,6 +37,7 @@ plugins=(
 )
 
 source $ZSH/oh-my-zsh.sh
+source $HOME/.p10k.zsh
 
 # User configuration
 
@@ -60,10 +61,9 @@ fi
 
 # Setup
 export PATH="/snap/bin:$PATH"
-source "$HOME/.cargo/env"
 
 # >>> conda initialize >>>
-# !! contents within this block are managed by 'conda init' !!
+# !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/pedro/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
@@ -71,7 +71,7 @@ else
     if [ -f "/home/pedro/anaconda3/etc/profile.d/conda.sh" ]; then
         . "/home/pedro/anaconda3/etc/profile.d/conda.sh"
     else
-        export path="/home/pedro/anaconda3/bin:$path"
+        export PATH="/home/pedro/anaconda3/bin:$PATH"
     fi
 fi
 unset __conda_setup

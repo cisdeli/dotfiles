@@ -15,6 +15,8 @@ require('telescope').setup({
                 "!**/.tmux/*",
                 "-g",
                 "!**/target/debug/*",
+                "-g",
+                "!**/CMakeFiles/*",
             },
         },
     },

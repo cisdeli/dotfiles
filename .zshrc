@@ -60,7 +60,6 @@ fi
 
 # Setup
 export PATH="/snap/bin:$PATH"
-source "$HOME/.cargo/env"
 
 # >>> conda initialize >>>
 # !! contents within this block are managed by 'conda init' !!

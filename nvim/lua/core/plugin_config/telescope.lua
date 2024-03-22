@@ -19,6 +19,8 @@ require('telescope').setup({
                 "!**/CMakeFiles/*",
                 "-g",
                 "!**/.cache/*",
+                "-g",
+                "!**/*.out",
             },
         },
     },

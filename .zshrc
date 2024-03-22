@@ -61,6 +61,11 @@ fi
 
 # Setup
 export PATH="/snap/bin:$PATH"
+<<<<<<< HEAD
+=======
+export PATH="/home/pedro/.local/bin:$PATH"
+eval "$(zoxide init --cmd cd zsh)"
+>>>>>>> 822ba7eb77ae7946020d1c73f540f455c1923e3f
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
@@ -80,3 +85,5 @@ unset __conda_setup
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

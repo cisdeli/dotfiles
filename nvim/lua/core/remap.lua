@@ -1,7 +1,8 @@
 vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>p", vim.cmd.Ex)
 
-
+-- Terminal window jumping remaps
+vim.keymap.set("t", "<C-f>", "<C-\\><C-n>")
 -- Move and Auto indent
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")

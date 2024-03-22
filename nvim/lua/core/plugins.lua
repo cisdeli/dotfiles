@@ -17,12 +17,26 @@ require("lazy").setup({
     { 'neovim/nvim-lspconfig' },
     { 'hrsh7th/cmp-nvim-lsp' },
     { 'hrsh7th/nvim-cmp' },
+    { 'm4xshen/autoclose.nvim' },
     { 'L3MON4D3/LuaSnip' },
     { "saadparwaiz1/cmp_luasnip" },
     { "rafamadriz/friendly-snippets" },
     { "lukas-reineke/indent-blankline.nvim",    main = "ibl",       opts = {} },
     { 'mbbill/undotree' },
-    { 'theprimeagen/harpoon' },
+    {
+        "ThePrimeagen/harpoon",
+        branch = "harpoon2",
+        dependencies = { "nvim-lua/plenary.nvim" }
+    },
+    {
+        "letieu/harpoon-lualine",
+        dependencies = {
+            {
+                "ThePrimeagen/harpoon",
+                branch = "harpoon2",
+            }
+        },
+    },
     { 'terrortylor/nvim-comment' },
     {
         'nvim-lualine/lualine.nvim',

@@ -60,12 +60,14 @@ fi
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # Setup
+if grep -qEi "(Microsoft|WSL)" /proc/version; then
+    source "$HOME/.cargo/env"
+else
+    # Intentionally left blank
+fi
 export PATH="/snap/bin:$PATH"
-<<<<<<< HEAD
-=======
 export PATH="/home/pedro/.local/bin:$PATH"
 eval "$(zoxide init --cmd cd zsh)"
->>>>>>> 822ba7eb77ae7946020d1c73f540f455c1923e3f
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!

@@ -60,4 +60,14 @@ require("lazy").setup({
         "goolord/alpha-nvim",
         lazy = true,
     },
+    {
+        "folke/noice.nvim",
+        event = "VeryLazy",
+        opts = {
+        },
+        dependencies = {
+            "MunifTanjim/nui.nvim",
+            "rcarriga/nvim-notify",
+        }
+    }
 })

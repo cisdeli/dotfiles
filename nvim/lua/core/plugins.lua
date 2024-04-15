@@ -1,5 +1,6 @@
 require("lazy").setup({
     { 'rose-pine/neovim',                name = 'rose-pine' },
+    { "EdenEast/nightfox.nvim" },
     { "nyoom-engineering/oxocarbon.nvim" },
     { "catppuccin/nvim",                 name = "catppuccin", priority = 1000 },
     {

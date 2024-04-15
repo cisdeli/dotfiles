@@ -48,6 +48,7 @@ require("lazy").setup({
         'sourcegraph/sg.nvim',
         dependencies = { "nvim-lua/plenary.nvim" }
     },
+    { 'github/copilot.vim' },
     {
         "folke/which-key.nvim",
         event = "VeryLazy",

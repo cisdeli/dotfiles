@@ -56,8 +56,7 @@ fi
 # export ARCHFLAGS="-arch x86_64"
 
 # Aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
+alias python=python3
 
 # Setup
 if grep -qEi "(Microsoft|WSL)" /proc/version; then

@@ -55,3 +55,15 @@ vim.keymap.set('i', '<Up>', '<Esc>:echo "You pressed Up!"<CR>', { noremap = true
 vim.keymap.set('i', '<Down>', '<Esc>:echo "You pressed Down!"<CR>', { noremap = true, silent = true })
 vim.keymap.set('i', '<Left>', '<Esc>:echo "You pressed Left!"<CR>', { noremap = true, silent = true })
 vim.keymap.set('i', '<Right>', '<Esc>:echo "You pressed Right!"<CR>', { noremap = true, silent = true })
+
+-- Toggle terminal
+vim.keymap.set('n', '<leader>tt', function() -- Open terminal
+    local current_buf = vim.api.nvim_get_current_buf()
+    local buf_type = vim.api.nvim_buf_get_option(current_buf, 'buftype')
+    vim.cmd('terminal')
+    vim.cmd('startinsert')
+end, { noremap = true, silent = true })
+vim.keymap.set('t', '<leader>tt', function() -- Close terminal
+    local keys = vim.api.nvim_replace_termcodes([[<C-\><C-n>:b#<CR>]], true, false, true)
+    vim.api.nvim_feedkeys(keys, 'n', false)
+end, { noremap = true, silent = true })

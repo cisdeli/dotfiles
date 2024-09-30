@@ -57,7 +57,7 @@ fi
 
 # Aliases
 alias python=python3
-alias ls='ls -lah'
+alias ls='ls -lah --color=auto'
 
 # Setup
 if grep -qEi "(Microsoft|WSL)" /proc/version; then

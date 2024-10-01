@@ -67,3 +67,21 @@ vim.keymap.set('t', '<leader>tt', function() -- Close terminal
     local keys = vim.api.nvim_replace_termcodes([[<C-\><C-n>:b#<CR>]], true, false, true)
     vim.api.nvim_feedkeys(keys, 'n', false)
 end, { noremap = true, silent = true })
+
+-- Toggle Terminal and Run Python file.
+vim.keymap.set('n', '<leader>tr', function()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local buf_type = vim.api.nvim_buf_get_option(current_buf, 'buftype')
+
+    if buf_type == 'terminal' then
+        -- If in terminal, go back to previous buffer
+        local keys = vim.api.nvim_replace_termcodes([[<C-\><C-n>:b#<CR>]], true, false, true)
+        vim.api.nvim_feedkeys(keys, 'n', false)
+    else
+        -- If not in terminal, open terminal and run Python file
+        local file_path = vim.api.nvim_buf_get_name(current_buf)
+        vim.cmd('w') -- Save the current file
+        vim.cmd('terminal python ' .. vim.fn.shellescape(file_path))
+        vim.cmd('startinsert')
+    end
+end, { noremap = true, silent = true })

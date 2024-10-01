@@ -37,6 +37,12 @@ vim.api.nvim_set_keymap('i', '<M-l>', '<Esc>:normal! l<CR>a', { noremap = true, 
 -- Replace the word on cursor position
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 
+-- Search the word on cursor position
+vim.keymap.set("n", "<leader>sw", function()
+    local word = vim.fn.expand("<cword>")
+    vim.cmd("/" .. word)
+end, { desc = "Search word under cursor" })
+
 -- chmod basically
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
 

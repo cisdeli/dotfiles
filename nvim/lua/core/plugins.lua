@@ -81,4 +81,8 @@ require("lazy").setup({
         end,
         ft = { "markdown" },
     },
+    {
+        "https://github.com/lewis6991/gitsigns.nvim",
+        lazy = true,
+    },
 })

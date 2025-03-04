@@ -65,20 +65,21 @@ if grep -qEi "(Microsoft|WSL)" /proc/version; then
 else
     # Intentionally left blank
 fi
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 export PATH="/snap/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(zoxide init --cmd cd zsh)"
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/cisdeli/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+__conda_setup="$('$HOME/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
-    if [ -f "/home/cisdeli/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/home/cisdeli/anaconda3/etc/profile.d/conda.sh"
+    if [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "$HOME/anaconda3/etc/profile.d/conda.sh"
     else
-        export PATH="/home/cisdeli/anaconda3/bin:$PATH"
+        export PATH="$HOME/anaconda3/bin:$PATH"
     fi
 fi
 unset __conda_setup
@@ -90,4 +91,3 @@ unset __conda_setup
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

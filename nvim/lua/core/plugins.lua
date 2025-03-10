@@ -85,4 +85,11 @@ require("lazy").setup({
         "https://github.com/lewis6991/gitsigns.nvim",
         lazy = true,
     },
+    {
+        "lervag/vimtex",
+        lazy = false,
+        init = function()
+            vim.g.vimtex_view_method = "zathura"
+        end
+    }
 })

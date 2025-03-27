@@ -14,7 +14,13 @@ require("lazy").setup({
     { 'VonHeikemen/lsp-zero.nvim',              branch = 'v3.x' },
     { 'williamboman/mason.nvim' },
     { 'williamboman/mason-lspconfig.nvim' },
-    { 'jay-babu/mason-null-ls.nvim' },
+    {
+        "jay-babu/mason-null-ls.nvim",
+        dependencies = {
+          "williamboman/mason.nvim",
+          "nvimtools/none-ls.nvim",
+        },
+    },
     {
         "nvimtools/none-ls.nvim",
         dependencies = {

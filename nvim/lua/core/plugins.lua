@@ -15,7 +15,12 @@ require("lazy").setup({
     { 'williamboman/mason.nvim' },
     { 'williamboman/mason-lspconfig.nvim' },
     { 'jay-babu/mason-null-ls.nvim' },
-    { 'jose-elias-alvarez/null-ls.nvim' },
+    {
+        "nvimtools/none-ls.nvim",
+        dependencies = {
+            "nvimtools/none-ls-extras.nvim",
+        },
+    },
     { 'neovim/nvim-lspconfig' },
     { 'hrsh7th/cmp-nvim-lsp' },
     { 'hrsh7th/nvim-cmp' },
@@ -23,7 +28,7 @@ require("lazy").setup({
     { 'L3MON4D3/LuaSnip' },
     { "saadparwaiz1/cmp_luasnip" },
     { "rafamadriz/friendly-snippets" },
-    { "lukas-reineke/indent-blankline.nvim",    main = "ibl",       opts = {} },
+    { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
     { 'mbbill/undotree' },
     {
         "ThePrimeagen/harpoon",

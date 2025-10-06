@@ -60,12 +60,20 @@ alias python=python3
 alias ls='ls -lah --color=auto'
 
 # Setup
-if grep -qEi "(Microsoft|WSL)" /proc/version; then
+if [[ -f "/proc/version" ]] && grep -qEi "(Microsoft|WSL)" /proc/version; then
     source "$HOME/.cargo/env"
 else
     # Intentionally left blank
 fi
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+if [[ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [[ -f "/opt/homebrew/bin/brew" ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -f "/usr/local/bin/brew" ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+fi
+
 export PATH="/snap/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(zoxide init --cmd cd zsh)"

@@ -101,3 +101,9 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 # go
 export PATH=$PATH:/usr/local/go/bin
+
+# Force X11 for GUI apps (fixes Open3D/OpenGL in WSL)
+export DISPLAY=:0
+export WAYLAND_DISPLAY=""
+export GDK_BACKEND=x11
+export QT_QPA_PLATFORM=xcb

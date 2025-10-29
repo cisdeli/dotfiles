@@ -50,18 +50,6 @@ vim.keymap.set("n", "<leader><leader>", function()
     vim.cmd("so")
 end)
 
--- Map arrow keys to custom commands in normal mode
-vim.keymap.set('n', '<Up>', ':echo "You pressed Up!"<CR>', { noremap = true, silent = true })
-vim.keymap.set('n', '<Down>', ':echo "You pressed Down!"<CR>', { noremap = true, silent = true })
-vim.keymap.set('n', '<Left>', ':echo "You pressed Left!"<CR>', { noremap = true, silent = true })
-vim.keymap.set('n', '<Right>', ':echo "You pressed Right!"<CR>', { noremap = true, silent = true })
-
--- Map arrow keys to custom commands in insert mode
-vim.keymap.set('i', '<Up>', '<Esc>:echo "You pressed Up!"<CR>', { noremap = true, silent = true })
-vim.keymap.set('i', '<Down>', '<Esc>:echo "You pressed Down!"<CR>', { noremap = true, silent = true })
-vim.keymap.set('i', '<Left>', '<Esc>:echo "You pressed Left!"<CR>', { noremap = true, silent = true })
-vim.keymap.set('i', '<Right>', '<Esc>:echo "You pressed Right!"<CR>', { noremap = true, silent = true })
-
 -- Toggle terminal
 vim.keymap.set('n', '<leader>tt', function() -- Open terminal
     local current_buf = vim.api.nvim_get_current_buf()

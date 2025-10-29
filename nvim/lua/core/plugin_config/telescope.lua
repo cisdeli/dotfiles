@@ -29,6 +29,8 @@ require('telescope').setup({
                 "!**/*.pyc",
                 "-g",
                 "!**/*.venv",
+                "-g",
+                "!**/*_deps",
             },
         },
     },

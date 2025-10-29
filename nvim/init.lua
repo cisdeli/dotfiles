@@ -17,6 +17,7 @@ else
     vim.opt.rtp:prepend(lazypath)
     require("core.remap")
     require("core.set")
+    require("core.filetypes")
     require("core.plugins")
     require("core.plugin_config")
 end

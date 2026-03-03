@@ -115,3 +115,8 @@ export DISPLAY=:0
 export WAYLAND_DISPLAY=""
 export GDK_BACKEND=x11
 export QT_QPA_PLATFORM=xcb
+
+# globus CLI completions
+if type globus > /dev/null 2>&1; then
+    eval "$(globus --zsh-completer)"
+fi

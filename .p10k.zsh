@@ -34,6 +34,8 @@
     # =========================[ Line #1 ]=========================
     os_icon                 # os identifier
     dir                     # current directory
+    node_type        # <-- add this
+    slurm_jobs       # <-- add this
     vcs                     # git status
     # =========================[ Line #2 ]=========================
     newline                 # \n
@@ -1688,6 +1690,58 @@
   #   - same-dir: Trim down prompt when accepting a command line unless this is the first command
   #               typed after changing current working directory.
   typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=off
+
+  # Node type: login / cpu / gpu
+  function prompt_node_type() {
+    local host=$(hostname -s)
+    if [[ "$host" == login* ]]; then
+      p10k segment -f 244 -i '󰣀' -t 'login'
+    elif [[ -n "$SLURM_JOB_PARTITION" ]]; then
+      case "$SLURM_JOB_PARTITION" in
+        ai*)  p10k segment -f 141 -i '󰢮' -t "gpu" ;;
+        cpu*) p10k segment -f 114 -i '󰘚' -t "cpu" ;;
+        *)    p10k segment -f 208 -i '󰘚' -t "$SLURM_JOB_PARTITION" ;;
+      esac
+    fi
+  }
+
+  # Slurm jobs: running job count + names + partition
+  function prompt_slurm_jobs() {
+    # Only query slurm if we have it available
+    command -v squeue &>/dev/null || return
+    local sq
+    sq=$(squeue -u "$USER" -h -o "%j|%P|%T|%N" 2>/dev/null) || return
+    [[ -z "$sq" ]] && return
+
+    local running=0 pending=0 names=() partitions=()
+    local nodes=()
+    while IFS='|' read -r name part state; do
+      if [[ "$state" == "RUNNING" ]]; then
+        (( running++ ))
+        names+=("$name")
+        partitions+=("$part")
+        nodes+=("${node%%.*}")  # strip .gautschi.rcac.purdue.edu
+      elif [[ "$state" == "PENDING" ]]; then
+        (( pending++ ))
+      fi
+    done <<< "$sq"
+
+    [[ $running -eq 0 && $pending -eq 0 ]] && return
+
+    local text=""
+    if (( running > 0 )); then
+      # Show first job name + partition, count if more
+      local label="${names[1]}@${partitions[1]}(${nodes[1]})"
+      (( running > 1 )) && label+=" +$(( running - 1 ))"
+      text="󰐌 ${label}"
+    fi
+    if (( pending > 0 )); then
+      [[ -n "$text" ]] && text+=" "
+      text+="󱥸 ${pending}q"
+    fi
+
+    p10k segment -f 220 -i '' -t "$text"
+  }
 
   # Instant prompt mode.
   #

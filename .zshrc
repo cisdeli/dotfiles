@@ -130,25 +130,65 @@ fi
 # Host gautschi-gpu
 #     HostName h001.gautschi.rcac.purdue.edu # gpu
 #     ...
-gautschi-node() {
+gautschi-update-node() {
   local info
   info=$(ssh gautschi 'squeue -u $USER -h -o "%N|%P" 2>/dev/null' | head -1)
   if [[ -z "$info" ]]; then
     echo "No running jobs found"
     return 1
   fi
-
   local node part
   node=$(echo "$info" | cut -d'|' -f1 | cut -d. -f1)
   part=$(echo "$info" | cut -d'|' -f2)
-
   local win_config="/mnt/c/Users/pmagalh/.ssh/config"
-
+  local wsl_config="$HOME/.ssh/config"
   if [[ "$part" == ai* ]]; then
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$win_config"
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$wsl_config"
     echo "Updated gautschi-gpu → ${node}"
   else
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$win_config"
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$wsl_config"
     echo "Updated gautschi-cpu → ${node}"
   fi
+}
+
+gautschi-allocate-update() {
+  local win_config="/mnt/c/Users/pmagalh/.ssh/config"
+  local wsl_config="$HOME/.ssh/config"
+  local ctl="/tmp/gautschi-ctl-$$"
+  # Open a single persistent SSH connection
+  ssh -fNM -S "$ctl" gautschi
+  _gssh() { ssh -S "$ctl" gautschi "$@"; }
+  # Check if there's already a running job
+  local info
+  info=$(_gssh 'squeue -u $USER -h -o "%N|%P|%T"' | awk -F'|' '$3=="RUNNING" {print $1"|"$2}' | head -1)
+  if [[ -n "$info" ]]; then
+    echo "Found existing allocation, skipping salloc..."
+  else
+    echo "Requesting allocation..."
+    _gssh 'tmux new-session -d -s work "salloc -A ciampitti -p cpu -c 8 --mem=32G -t 5:00:00 zsh" 2>/dev/null || true'
+    echo "Waiting for node..."
+    while [[ -z "$info" ]]; do
+      sleep 5
+      info=$(_gssh 'squeue -u $USER -h -o "%N|%P|%T"' | awk -F'|' '$3=="RUNNING" {print $1"|"$2}' | head -1)
+      echo -n "."
+    done
+    echo ""
+  fi
+  # Close the persistent connection
+  ssh -S "$ctl" -O exit gautschi 2>/dev/null
+  local node part
+  node=$(echo "$info" | cut -d'|' -f1 | cut -d. -f1)
+  part=$(echo "$info" | cut -d'|' -f2)
+  if [[ "$part" == ai* ]]; then
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$win_config"
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$wsl_config"
+    echo "Updated gautschi-gpu → ${node}"
+  else
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$win_config"
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$wsl_config"
+    echo "Updated gautschi-cpu → ${node}"
+  fi
+  echo "Ready"
 }

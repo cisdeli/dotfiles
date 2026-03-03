@@ -120,3 +120,35 @@ export QT_QPA_PLATFORM=xcb
 if type globus > /dev/null 2>&1; then
     eval "$(globus --zsh-completer)"
 fi
+
+# auto update gautschi compute node
+# This requires your `~/.ssh/config` entries to have inline comments to distinguish them:
+# Host gautschi-cpu
+#     HostName a057.gautschi.rcac.purdue.edu # cpu
+#     ...
+#
+# Host gautschi-gpu
+#     HostName h001.gautschi.rcac.purdue.edu # gpu
+#     ...
+gautschi-node() {
+  local info
+  info=$(ssh gautschi 'squeue -u $USER -h -o "%N|%P" 2>/dev/null' | head -1)
+  if [[ -z "$info" ]]; then
+    echo "No running jobs found"
+    return 1
+  fi
+
+  local node part
+  node=$(echo "$info" | cut -d'|' -f1 | cut -d. -f1)
+  part=$(echo "$info" | cut -d'|' -f2)
+
+  local win_config="/mnt/c/Users/pmagalh/.ssh/config"
+
+  if [[ "$part" == ai* ]]; then
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$win_config"
+    echo "Updated gautschi-gpu → ${node}"
+  else
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$win_config"
+    echo "Updated gautschi-cpu → ${node}"
+  fi
+}

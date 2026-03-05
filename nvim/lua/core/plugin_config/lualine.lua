@@ -1,8 +1,11 @@
 require('lualine').setup {
     options = {
         icons_enabled = true,
-        theme = 'auto',
-        component_separators = {},
+        theme = {
+            normal   = { c = { bg = 'none' } },
+            inactive = { c = { bg = 'none' } },
+        },
+       component_separators = {},
         section_separators = { left = '', right = '' },
         disabled_filetypes = {
             statusline = {},

@@ -128,3 +128,6 @@ fi
 export UV_CACHE_DIR="/depot/ciampitti/apps/uv-cache/pmagalh/cache"
 export HF_HOME="/depot/ciampitti/apps/envs/pmagalh/huggingface"
 export HF_HUB_CACHE="/depot/ciampitti/apps/envs/pmagalh/huggingface/hub"
+
+# For Glow and other apps
+export PATH="/depot/ciampitti/apps:$PATH"

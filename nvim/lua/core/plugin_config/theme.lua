@@ -162,7 +162,35 @@ require('nightfox').setup({
 
 -- vim.cmd('colorscheme carbonfox')
 
-vim.opt.background = "dark" -- set this to dark or light
+vim.opt.background = "dark" --dark or light
 vim.cmd('colorscheme oxocarbon')
--- vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
--- vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+
+-- Core transparency
+vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
+vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+vim.api.nvim_set_hl(0, "NormalNC", { bg = "none" }) -- inactive windows
+
+-- Floating windows / popups (this fixes Treesitter popup losing transparency)
+vim.api.nvim_set_hl(0, "FloatBorder", { bg = "none" })
+vim.api.nvim_set_hl(0, "FloatTitle", { bg = "none" })
+
+-- Sidebar / panels that bleed background
+vim.api.nvim_set_hl(0, "SignColumn", { bg = "none" })
+vim.api.nvim_set_hl(0, "LineNr", { bg = "none" })
+vim.api.nvim_set_hl(0, "CursorLineNr", { bg = "none" })
+vim.api.nvim_set_hl(0, "EndOfBuffer", { bg = "none" })
+vim.api.nvim_set_hl(0, "StatusLine", { bg = "none" })
+vim.api.nvim_set_hl(0, "StatusLineNC", { bg = "none" })
+
+-- Telescope
+vim.api.nvim_set_hl(0, "TelescopeNormal", { bg = "none" })
+vim.api.nvim_set_hl(0, "TelescopeBorder", { bg = "none" })
+vim.api.nvim_set_hl(0, "TelescopePromptNormal", { bg = "none" })
+
+-- Color column
+vim.api.nvim_set_hl(0, "ColorColumn", { bg = "none" })
+
+-- Vim notify
+require("notify").setup({
+    background_colour = "#000000",
+})

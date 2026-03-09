@@ -55,10 +55,6 @@ require("lazy").setup({
         'nvim-lualine/lualine.nvim',
         dependencies = { 'nvim-tree/nvim-web-devicons' }
     },
-    {
-        'sourcegraph/sg.nvim',
-        dependencies = { "nvim-lua/plenary.nvim" }
-    },
     { 'github/copilot.vim' },
     {
         "folke/which-key.nvim",
@@ -102,5 +98,8 @@ require("lazy").setup({
         init = function()
             vim.g.vimtex_view_method = "zathura"
         end
+    },
+    {
+        "tpope/vim-fugitive",
     }
 })

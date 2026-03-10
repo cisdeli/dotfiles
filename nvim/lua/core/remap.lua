@@ -79,3 +79,17 @@ vim.keymap.set('n', '<leader>tr', function()
         vim.cmd('startinsert')
     end
 end, { noremap = true, silent = true })
+
+if vim.g.vscode then
+    local vscode = require('vscode')
+
+    vim.keymap.set('n', '<leader>p', function()
+        vscode.action('workbench.view.explorer')
+    end)
+    vim.keymap.set('n', '<leader>sf', function()
+        vscode.action('workbench.action.quickOpen')
+    end)
+    vim.keymap.set('n', '<leader>fg', function()
+        vscode.action('workbench.action.findInFiles')
+    end)
+end

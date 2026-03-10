@@ -146,6 +146,10 @@ gautschi-update-node() {
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$win_config"
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$wsl_config"
     echo "Updated gautschi-gpu → ${node}"
+  elif [[ "$part" == smallgpu* ]]; then
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# smallgpu/HostName ${node}.gautschi.rcac.purdue.edu # smallgpu/" "$win_config"
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# smallgpu/HostName ${node}.gautschi.rcac.purdue.edu # smallgpu/" "$wsl_config"
+    echo "Updated gautschi-smallgpu → ${node}"
   else
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$win_config"
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$wsl_config"
@@ -185,6 +189,10 @@ gautschi-allocate-update() {
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$win_config"
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# gpu/HostName ${node}.gautschi.rcac.purdue.edu # gpu/" "$wsl_config"
     echo "Updated gautschi-gpu → ${node}"
+  elif [[ "$part" == smallgpu* ]]; then
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# smallgpu/HostName ${node}.gautschi.rcac.purdue.edu # smallgpu/" "$win_config"
+    sed -i "s/HostName [a-z][0-9]*\.gautschi.*# smallgpu/HostName ${node}.gautschi.rcac.purdue.edu # smallgpu/" "$wsl_config"
+    echo "Updated gautschi-smallgpu → ${node}"
   else
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$win_config"
     sed -i "s/HostName [a-z][0-9]*\.gautschi.*# cpu/HostName ${node}.gautschi.rcac.purdue.edu # cpu/" "$wsl_config"

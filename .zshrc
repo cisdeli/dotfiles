@@ -76,6 +76,7 @@ fi
 
 export PATH="/snap/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+eval "$(direnv hook zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 
 # >>> conda initialize >>>

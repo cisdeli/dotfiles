@@ -92,4 +92,7 @@ if vim.g.vscode then
     vim.keymap.set('n', '<leader>fg', function()
         vscode.action('workbench.action.findInFiles')
     end)
+    vim.keymap.set('n', '<leader>vfm', function()
+        vscode.action('editor.action.formatDocument')
+    end)
 end

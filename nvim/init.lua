@@ -20,4 +20,6 @@ else
     require("core.filetypes")
     require("core.plugins")
     require("core.plugin_config")
+    -- Disable Copilot on startup
+    vim.g.copilot_enabled = 0
 end

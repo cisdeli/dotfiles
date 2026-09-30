@@ -17,8 +17,8 @@ require("lazy").setup({
     {
         "jay-babu/mason-null-ls.nvim",
         dependencies = {
-          "williamboman/mason.nvim",
-          "nvimtools/none-ls.nvim",
+            "williamboman/mason.nvim",
+            "nvimtools/none-ls.nvim",
         },
     },
     {
@@ -101,5 +101,11 @@ require("lazy").setup({
     },
     {
         "tpope/vim-fugitive",
+    },
+    {
+        "iamcco/markdown-preview.nvim",
+        cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+        ft = { "markdown" },
+        build = "cd app && npm install",
     }
 })

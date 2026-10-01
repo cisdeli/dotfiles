@@ -1,51 +1,120 @@
 #!/usr/bin/env python3
-"""Serve 3D models (obj/ply/stl/glb/gltf) in a browser viewer over an SSH tunnel.
+"""Browser 3D model viewer (obj/ply/stl/glb/gltf) for the cluster.
 
-usage: objview [-p PORT] FILE_OR_DIR...
+usage:
+  objview [PATH...]   show files/folders in the open viewer tab (default: current folder)
+  objview --url       start the server if needed and print "PORT TOKEN" (used by the laptop)
+  objview --stop      stop the server
 
-Binds to 127.0.0.1 only and puts a random token in the URL, since login nodes
-are shared. Run the printed `objtunnel` command on the laptop to open it.
+One server per user runs on SERVER_NODE, bound to 127.0.0.1 with a random token in
+the URL since login nodes are shared. Requests are passed through a folder in $HOME,
+so `objview` works from compute nodes too. On the laptop, `objview` opens the tab.
 """
-import argparse
 import json
 import mimetypes
 import os
 import secrets
 import shutil
+import signal
 import socket
+import subprocess
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
+SERVER_NODE = os.environ.get("OBJVIEW_NODE", "login07")  # the node `ssh gautschi` lands on
+PORT = int(os.environ.get("OBJVIEW_PORT", 20000 + os.getuid() % 20000))
 EXTS = (".obj", ".ply", ".stl", ".glb", ".gltf")
+STATE = os.path.expanduser("~/.config/objview")
+INBOX = os.path.join(STATE, "inbox")
+HEARTBEAT = os.path.join(STATE, "heartbeat")
+LOG = os.path.join(STATE, "server.log")
+PLACES = [p for p in (
+    os.path.expanduser("~"),
+    f"/scratch/gautschi/{os.environ.get('USER', '')}",
+    "/depot/ciampitti",
+) if os.path.isdir(p)]
 
 
-def collect(paths):
-    """Return (roots, models): served directories and the models inside them."""
-    roots, models = [], []
-    for p in paths:
-        p = os.path.abspath(p)
-        if os.path.isdir(p):
-            files = sorted(f for f in os.listdir(p) if f.lower().endswith(EXTS))
-            root = p
-        elif os.path.isfile(p):
-            files = [os.path.basename(p)]
-            root = os.path.dirname(p)
-        else:
-            sys.exit(f"objview: no such file or directory: {p}")
-        if root not in roots:
-            roots.append(root)
-        idx = roots.index(root)
-        for f in files:
-            models.append({
-                "name": f,
-                "url": f"f/{idx}/{quote(f)}",
-                "mtl": mtllib(os.path.join(root, f)),
-                "size": os.path.getsize(os.path.join(root, f)),
-            })
-    if not models:
-        sys.exit("objview: no supported models found (" + " ".join(EXTS) + ")")
-    return roots, models
+def token():
+    path = os.path.join(STATE, "token")
+    if not os.path.exists(path):
+        os.makedirs(STATE, mode=0o700, exist_ok=True)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        os.write(fd, secrets.token_urlsafe(12).encode())
+        os.close(fd)
+    with open(path) as fh:
+        return fh.read().strip()
+
+
+def node():
+    return socket.gethostname().split(".")[0]
+
+
+def server_alive():
+    try:
+        return time.time() - os.path.getmtime(HEARTBEAT) < 10
+    except OSError:
+        return False
+
+
+def start_server():
+    """Start the server in the background if it isn't running. Only possible on SERVER_NODE."""
+    if server_alive():
+        return True
+    if node() != SERVER_NODE:
+        return False
+    os.makedirs(INBOX, exist_ok=True)
+    with open(LOG, "ab") as log:
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "--serve"],
+                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+    for _ in range(50):
+        if server_alive():
+            return True
+        time.sleep(0.1)
+    sys.exit(f"objview: server failed to start, see {LOG}")
+
+
+# ---------------------------------------------------------------- server
+
+class Events:
+    """Open requests, handed to the browser through long polling."""
+
+    def __init__(self):
+        self.items = []
+        self.cond = threading.Condition()
+
+    def add(self, req):
+        with self.cond:
+            self.items.append(req)
+            self.cond.notify_all()
+
+    def since(self, seq, timeout=25):
+        with self.cond:
+            self.cond.wait_for(lambda: len(self.items) > seq, timeout)
+            return len(self.items), self.items[seq:]
+
+
+def watch_inbox(events):
+    beat = 0
+    while True:
+        if time.time() - beat > 3:
+            with open(HEARTBEAT, "w") as fh:
+                fh.write(f"{node()} {os.getpid()}\n")
+            beat = time.time()
+        for name in sorted(os.listdir(INBOX)):
+            path = os.path.join(INBOX, name)
+            try:
+                with open(path) as fh:
+                    req = json.load(fh)
+                os.remove(path)
+            except (OSError, ValueError):
+                continue
+            if time.time() - req.get("time", 0) < 600:
+                events.add(req)
+        time.sleep(0.3)
 
 
 def mtllib(path):
@@ -62,79 +131,159 @@ def mtllib(path):
     return None
 
 
-def make_handler(token, roots, page):
-    prefix = f"/{token}/"
+def listing(d):
+    dirs, files = [], []
+    with os.scandir(d) as it:
+        for e in it:
+            if e.name.startswith("."):
+                continue
+            try:
+                if e.is_dir():
+                    dirs.append(e.name)
+                elif e.name.lower().endswith(EXTS):
+                    files.append({"name": e.name, "size": e.stat().st_size})
+            except OSError:
+                pass
+    dirs.sort(key=str.lower)
+    files.sort(key=lambda f: f["name"].lower())
+    return {"dir": d, "parent": os.path.dirname(d) if d != "/" else None, "dirs": dirs, "files": files}
+
+
+def make_handler(tok, events, page):
+    prefix = f"/{tok}"
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
 
         def do_GET(self):
-            path = unquote(self.path.split("?", 1)[0])
-            if path == prefix.rstrip("/"):
-                self.send_response(301)
-                self.send_header("Location", prefix)
-                self.end_headers()
-            elif path == prefix:
-                self.send(page.encode(), "text/html; charset=utf-8")
-            elif path.startswith(prefix + "f/"):
-                self.send_file(path[len(prefix) + 2:])
-            else:
+            url = urlsplit(self.path)
+            path = unquote(url.path)
+            q = {k: v[0] for k, v in parse_qs(url.query).items()}
+            if not path.startswith(prefix):
+                return self.send_error(404)
+            route = path[len(prefix):]
+            try:
+                if route == "":
+                    self.send_response(301)
+                    self.send_header("Location", prefix + "/")
+                    self.end_headers()
+                elif route == "/":
+                    self.send(page.encode(), "text/html; charset=utf-8")
+                elif route == "/api/ping":
+                    self.json({"ok": True})
+                elif route == "/api/ls":
+                    self.json(listing(os.path.abspath(q.get("dir", PLACES[0]))))
+                elif route == "/api/info":
+                    p = q["path"]
+                    self.json({"size": os.path.getsize(p), "mtl": mtllib(p)})
+                elif route == "/api/last":
+                    with events.cond:
+                        self.json({"seq": len(events.items), "last": events.items[-1] if events.items else None})
+                elif route == "/api/events":
+                    seq, items = events.since(int(q.get("since", 0)))
+                    self.json({"seq": seq, "events": items})
+                elif route.startswith("/raw/"):
+                    self.send_file(route[4:])
+                else:
+                    self.send_error(404)
+            except (FileNotFoundError, NotADirectoryError):
                 self.send_error(404)
+            except PermissionError:
+                self.send_error(403)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
         def send(self, body, ctype):
             self.send_response(200)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
 
-        def send_file(self, rest):
-            idx, _, rel = rest.partition("/")
-            if not idx.isdigit() or int(idx) >= len(roots):
+        def json(self, obj):
+            self.send(json.dumps(obj).encode(), "application/json")
+
+        def send_file(self, path):
+            if not os.path.isfile(path):
                 return self.send_error(404)
-            root = roots[int(idx)]
-            full = os.path.realpath(os.path.join(root, rel))
-            if not full.startswith(os.path.realpath(root) + os.sep) or not os.path.isfile(full):
-                return self.send_error(404)
-            self.send_response(200)
-            self.send_header("Content-Type", mimetypes.guess_type(full)[0] or "application/octet-stream")
-            self.send_header("Content-Length", str(os.path.getsize(full)))
-            self.end_headers()
-            try:
-                with open(full, "rb") as fh:
-                    shutil.copyfileobj(fh, self.wfile, 1024 * 1024)
-            except (BrokenPipeError, ConnectionResetError):
-                pass
+            with open(path, "rb") as fh:
+                self.send_response(200)
+                self.send_header("Content-Type", mimetypes.guess_type(path)[0] or "application/octet-stream")
+                self.send_header("Content-Length", str(os.fstat(fh.fileno()).st_size))
+                self.end_headers()
+                shutil.copyfileobj(fh, self.wfile, 1024 * 1024)
 
     return Handler
 
 
-def main():
-    parser = argparse.ArgumentParser(description="View 3D models in the browser over an SSH tunnel.")
-    parser.add_argument("paths", nargs="+", help="model files or directories containing them")
-    parser.add_argument("-p", "--port", type=int, default=0, help="port to serve on (default: random free port)")
-    args = parser.parse_args()
-
-    roots, models = collect(args.paths)
-    token = secrets.token_urlsafe(9)
-    page = PAGE.replace("__MODELS__", json.dumps(models))
-
-    try:
-        server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(token, roots, page))
-    except OSError as e:
-        sys.exit(f"objview: cannot bind port {args.port}: {e.strerror}")
-    port = server.server_address[1]
-    node = socket.gethostname().split(".")[0]
-
-    print(f"objview: serving {len(models)} model(s) on {node}:{port}")
-    print(f"  laptop:  objtunnel {node} {port}/{token}")
-    print(f"  url:     http://localhost:{port}/{token}/")
-    print("  Ctrl-C to stop", flush=True)
+def serve():
+    events = Events()
+    os.makedirs(INBOX, exist_ok=True)
+    page = PAGE.replace("__PLACES__", json.dumps(PLACES))
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), make_handler(token(), events, page))
+    server.daemon_threads = True
+    threading.Thread(target=watch_inbox, args=(events,), daemon=True).start()
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    print(f"{time.ctime()} serving on {node()}:{PORT} pid {os.getpid()}", flush=True)
     try:
         server.serve_forever()
-    except KeyboardInterrupt:
-        print()
+    finally:
+        os.remove(HEARTBEAT)
+
+
+# ---------------------------------------------------------------- cli
+
+def stop():
+    try:
+        with open(HEARTBEAT) as fh:
+            host, pid = fh.read().split()
+    except (OSError, ValueError):
+        return print("objview: server not running")
+    if host != node():
+        sys.exit(f"objview: server runs on {host}, stop it from there")
+    os.kill(int(pid), signal.SIGTERM)
+    print("objview: stopped")
+
+
+def send(paths):
+    paths = [os.path.abspath(p) for p in paths]
+    for p in paths:
+        if not os.path.exists(p):
+            sys.exit(f"objview: no such file or directory: {p}")
+    files = [p for p in paths if os.path.isfile(p)]
+    req = {"time": time.time(), "dir": os.path.dirname(files[0]) if files else paths[0], "files": files}
+
+    os.makedirs(INBOX, exist_ok=True)
+    tmp = os.path.join(INBOX, f".{os.getpid()}.tmp")
+    with open(tmp, "w") as fh:
+        json.dump(req, fh)
+    os.rename(tmp, os.path.join(INBOX, f"{time.time():.6f}-{os.getpid()}.json"))
+
+    what = os.path.basename(files[0]) if files else req["dir"]
+    if start_server():
+        print(f"objview: sent {what} to the viewer  http://localhost:{PORT}/{token()}/")
+        print("  no tab open? run `objview` on your laptop")
+    else:
+        print(f"objview: queued {what}, but the server isn't running (it lives on {SERVER_NODE})")
+        print("  run `objview` on your laptop to start it; the request is kept for 10 minutes")
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ["--serve"]:
+        serve()
+    elif args == ["--url"]:
+        if not start_server():
+            sys.exit(f"objview: start the server from {SERVER_NODE}")
+        print(PORT, token())
+    elif args == ["--stop"]:
+        stop()
+    elif args and args[0] in ("-h", "--help"):
+        print(__doc__.strip())
+    else:
+        send(args or ["."])
 
 
 PAGE = r"""<!doctype html>
@@ -144,18 +293,35 @@ PAGE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>objview</title>
 <style>
-  :root { --bg: #1e1e2e; --panel: #181825ee; --fg: #cdd6f4; --dim: #7f849c; --accent: #89b4fa; }
+  :root { --bg: #1e1e2e; --panel: #181825; --line: #313244; --fg: #cdd6f4; --dim: #7f849c; --accent: #89b4fa; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
     font: 13px/1.4 ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; overflow: hidden; }
-  #view { position: fixed; inset: 0; }
-  .panel { position: fixed; background: var(--panel); border-radius: 6px; padding: 10px 12px; }
-  #list { top: 12px; left: 12px; max-height: calc(100% - 24px); overflow: auto; min-width: 200px; }
-  #list div { padding: 3px 6px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; gap: 16px; }
-  #list div:hover { background: #ffffff14; }
-  #list div.on { color: var(--accent); }
-  #list span { color: var(--dim); }
+  body { display: flex; }
+  #side { width: 300px; min-width: 300px; height: 100%; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; }
+  #side.hidden { display: none; }
+  #places { display: flex; gap: 4px; padding: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  #places button { background: var(--line); color: var(--fg); border: 0; border-radius: 4px; padding: 3px 8px;
+    font: inherit; cursor: pointer; }
+  #crumbs { padding: 8px 10px 4px; color: var(--dim); word-break: break-all; }
+  #crumbs a { color: var(--fg); cursor: pointer; }
+  #filter { margin: 4px 8px 8px; padding: 5px 8px; background: var(--bg); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 4px; font: inherit; outline: none; }
+  #entries { flex: 1; overflow: auto; padding: 0 4px 8px; }
+  #entries div { padding: 3px 8px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between;
+    gap: 12px; white-space: nowrap; }
+  #entries div:hover { background: #ffffff14; }
+  #entries div.dir { color: var(--dim); }
+  #entries div.on { color: var(--accent); }
+  #entries span.name { overflow: hidden; text-overflow: ellipsis; }
+  #entries span.size { color: var(--dim); }
+  #entries .empty { color: var(--dim); cursor: default; }
+  #main { position: relative; flex: 1; height: 100%; }
+  #view { position: absolute; inset: 0; }
+  .panel { position: absolute; background: #181825ee; border-radius: 6px; padding: 10px 12px; }
   #info { bottom: 12px; left: 12px; white-space: pre; }
+  #info:empty { display: none; }
   #keys { bottom: 12px; right: 12px; color: var(--dim); white-space: pre; }
   #status { top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
 </style>
@@ -167,15 +333,23 @@ PAGE = r"""<!doctype html>
 </script>
 </head>
 <body>
-<div id="view"></div>
-<div id="list" class="panel"></div>
-<div id="info" class="panel"></div>
-<div id="keys" class="panel">f  fit view
+<div id="side">
+  <div id="places"></div>
+  <div id="crumbs"></div>
+  <input id="filter" placeholder="filter  (/)" spellcheck="false">
+  <div id="entries"></div>
+</div>
+<div id="main">
+  <div id="view"></div>
+  <div id="info" class="panel"></div>
+  <div id="keys" class="panel">f  fit view
 w  wireframe
 u  toggle z-up
 g  grid
+b  sidebar
 +/-  point size</div>
-<div id="status" class="panel"></div>
+  <div id="status" class="panel"></div>
+</div>
 <script type="module">
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -185,9 +359,17 @@ import { PLYLoader } from "three/addons/loaders/PLYLoader.js";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-const MODELS = __MODELS__;
+const PLACES = __PLACES__;
 const $ = (id) => document.getElementById(id);
 const mb = (n) => (n / 1048576).toFixed(1) + " MB";
+const raw = (p) => "raw" + p.split("/").map(encodeURIComponent).join("/");
+const api = async (route, params) => {
+  const r = await fetch(`api/${route}?` + new URLSearchParams(params));
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+};
+
+// ---------------------------------------------------------------- viewer
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -197,8 +379,6 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1e1e2e);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 1.6));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-scene.add(sun);
-
 const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
 camera.add(sun);
 sun.position.set(1, 1, 2);
@@ -208,17 +388,18 @@ controls.enableDamping = true;
 
 let grid = null;
 let model = null;
+let current = null;
 let zUp = false;
 let wire = false;
 let pointSize = 1;
 
 function resize() {
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight;
+  const { clientWidth: w, clientHeight: h } = $("main");
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
-addEventListener("resize", resize);
-resize();
+new ResizeObserver(resize).observe($("main"));
 
 function materials(fn) {
   model?.traverse((o) => o.material && [].concat(o.material).forEach(fn));
@@ -238,10 +419,12 @@ function fit() {
   controls.target.copy(center);
   controls.update();
 
+  const visible = grid ? grid.visible : true;
   if (grid) scene.remove(grid);
   const span = Math.max(size.x, size.z) * 2 || 1;
   grid = new THREE.GridHelper(span, 20, 0x585b70, 0x313244);
   grid.position.set(center.x, box.min.y, center.z);
+  grid.visible = visible;
   scene.add(grid);
 
   const d = (v) => +v.toPrecision(4);
@@ -253,7 +436,7 @@ function fit() {
     if (o.isMesh) tris += (o.geometry.index ? o.geometry.index.count : n) / 3;
   });
   $("info").textContent =
-    `${current.name}  (${mb(current.size)})\n` +
+    `${current.path.split("/").pop()}  (${mb(current.size)})\n` +
     `${verts.toLocaleString()} vertices` + (tris ? `, ${Math.round(tris).toLocaleString()} triangles` : ", point cloud") + "\n" +
     `size ${d(size.x)} x ${d(size.y)} x ${d(size.z)}`;
 }
@@ -283,60 +466,147 @@ function fromPly(g) {
   }));
 }
 
-let current = null;
-async function load(m) {
-  current = m;
-  document.querySelectorAll("#list div").forEach((el) => el.classList.toggle("on", el.dataset.url === m.url));
-  if (model) { scene.remove(model); model = null; }
+let loading = 0;
+async function load(path) {
+  const id = ++loading;
+  const name = path.split("/").pop();
+  const ext = name.toLowerCase().split(".").pop();
+  const url = raw(path);
+  const base = url.slice(0, url.lastIndexOf("/") + 1);
+  history.replaceState(null, "", "#" + path);
+  document.title = `${name} - objview`;
+  markCurrent(path);
   $("status").style.display = "block";
-  const progress = (e) => { $("status").textContent = `loading ${m.name}  ${mb(e.loaded)} / ${mb(m.size)}`; };
-  progress({ loaded: 0 });
-
-  const ext = m.name.toLowerCase().split(".").pop();
-  const base = m.url.slice(0, m.url.lastIndexOf("/") + 1);
+  $("status").textContent = `loading ${name}`;
   try {
+    const info = await api("info", { path });
+    const progress = (e) => {
+      if (id === loading) $("status").textContent = `loading ${name}  ${mb(e.loaded)} / ${mb(info.size)}`;
+    };
     let obj;
     if (ext === "obj") {
       const loader = new OBJLoader();
-      if (m.mtl) {
-        const mtl = await new MTLLoader().setPath(base).loadAsync(m.mtl);
+      if (info.mtl) {
+        const mtl = await new MTLLoader().setPath(base).loadAsync(info.mtl);
         mtl.preload();
         loader.setMaterials(mtl);
       }
-      obj = await loader.loadAsync(m.url, progress);
+      obj = await loader.loadAsync(url, progress);
     } else if (ext === "ply") {
-      obj = fromPly(await new PLYLoader().loadAsync(m.url, progress));
+      obj = fromPly(await new PLYLoader().loadAsync(url, progress));
     } else if (ext === "stl") {
-      obj = new THREE.Mesh(await new STLLoader().loadAsync(m.url, progress));
+      obj = new THREE.Mesh(await new STLLoader().loadAsync(url, progress));
     } else {
-      obj = (await new GLTFLoader().loadAsync(m.url, progress)).scene;
+      obj = (await new GLTFLoader().loadAsync(url, progress)).scene;
     }
+    if (id !== loading) return;
+    if (model) scene.remove(model);
     model = new THREE.Group();
-    model.add(prepare(obj, !!m.mtl || ext === "glb" || ext === "gltf"));
+    model.add(prepare(obj, !!info.mtl || ext === "glb" || ext === "gltf"));
     model.rotation.x = zUp ? -Math.PI / 2 : 0;
-    if (wire) materials((mat) => { mat.wireframe = true; });
+    if (wire) materials((m) => { m.wireframe = true; });
     scene.add(model);
+    current = { path, size: info.size };
     $("status").style.display = "none";
     fit();
   } catch (err) {
-    $("status").textContent = `failed to load ${m.name}: ${err.message || err}`;
+    if (id === loading) $("status").textContent = `failed to load ${name}: ${err.message || err}`;
   }
 }
 
-if (MODELS.length > 1) {
-  for (const m of MODELS) {
-    const el = document.createElement("div");
-    el.dataset.url = m.url;
-    el.innerHTML = `${m.name}<span>${mb(m.size)}</span>`;
-    el.onclick = () => load(m);
-    $("list").appendChild(el);
+// ---------------------------------------------------------------- browser
+
+let dir = null;
+let entries = [];
+
+for (const p of PLACES) {
+  const b = document.createElement("button");
+  b.textContent = p.split("/").pop() || "/";
+  b.title = p;
+  b.onclick = () => browse(p);
+  $("places").appendChild(b);
+}
+
+async function browse(d) {
+  let ls;
+  try {
+    ls = await api("ls", { dir: d });
+  } catch (err) {
+    $("entries").innerHTML = `<div class="empty">cannot open ${d}: ${err.message}</div>`;
+    return;
   }
-} else {
-  $("list").style.display = "none";
+  dir = ls.dir;
+  entries = [
+    ...(ls.parent ? [{ kind: "dir", name: "..", path: ls.parent }] : []),
+    ...ls.dirs.map((n) => ({ kind: "dir", name: n + "/", path: `${dir === "/" ? "" : dir}/${n}` })),
+    ...ls.files.map((f) => ({ kind: "file", name: f.name, size: f.size, path: `${dir === "/" ? "" : dir}/${f.name}` })),
+  ];
+  const parts = dir.split("/").filter(Boolean);
+  $("crumbs").innerHTML = "";
+  parts.forEach((p, i) => {
+    const a = document.createElement("a");
+    a.textContent = p;
+    a.onclick = () => browse("/" + parts.slice(0, i + 1).join("/"));
+    $("crumbs").append("/", a);
+  });
+  $("filter").value = "";
+  render();
+}
+
+function render() {
+  const f = $("filter").value.toLowerCase();
+  const box = $("entries");
+  box.innerHTML = "";
+  const shown = entries.filter((e) => e.name === ".." || e.name.toLowerCase().includes(f));
+  for (const e of shown) {
+    const el = document.createElement("div");
+    el.className = e.kind;
+    el.dataset.path = e.path;
+    el.innerHTML = `<span class="name"></span><span class="size">${e.size != null ? mb(e.size) : ""}</span>`;
+    el.firstChild.textContent = e.name;
+    el.onclick = () => (e.kind === "dir" ? browse(e.path) : load(e.path));
+    box.appendChild(el);
+  }
+  if (!entries.some((e) => e.kind === "file")) {
+    box.insertAdjacentHTML("beforeend", `<div class="empty">no models here</div>`);
+  }
+  markCurrent(location.hash.slice(1));
+}
+
+function markCurrent(path) {
+  document.querySelectorAll("#entries div[data-path]").forEach((el) => el.classList.toggle("on", el.dataset.path === path));
+}
+
+$("filter").addEventListener("input", render);
+$("filter").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { $("filter").value = ""; render(); $("filter").blur(); }
+  if (e.key === "Enter") document.querySelector("#entries div.file:not(.empty)")?.click();
+});
+
+// files sent with `objview` on the cluster
+async function poll(seq) {
+  for (;;) {
+    try {
+      const r = await api("events", { since: seq });
+      seq = r.seq;
+      for (const ev of r.events) {
+        await browse(ev.dir);
+        if (ev.files.length) load(ev.files[0]);
+      }
+    } catch {
+      $("status").style.display = "block";
+      $("status").textContent = "lost connection to the server, retrying...";
+      await new Promise((r) => setTimeout(r, 3000));
+      $("status").style.display = model ? "none" : "block";
+    }
+  }
 }
 
 addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "/") { e.preventDefault(); $("filter").focus(); }
   if (e.key === "f") fit();
+  if (e.key === "b") $("side").classList.toggle("hidden");
   if (e.key === "w") { wire = !wire; materials((m) => { m.wireframe = wire; }); }
   if (e.key === "u") { zUp = !zUp; if (model) { model.rotation.x = zUp ? -Math.PI / 2 : 0; fit(); } }
   if (e.key === "g" && grid) grid.visible = !grid.visible;
@@ -351,7 +621,20 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
-load(MODELS[0]);
+// start where the URL points, else at the latest `objview` request, else in the first place
+const start = decodeURIComponent(location.hash.slice(1));
+api("last").then(({ seq, last }) => {
+  if (start) {
+    browse(start.slice(0, start.lastIndexOf("/")) || "/");
+    load(start);
+  } else if (last) {
+    browse(last.dir);
+    if (last.files.length) load(last.files[0]);
+  } else {
+    browse(PLACES[0]);
+  }
+  poll(seq);
+});
 </script>
 </body>
 </html>

@@ -202,29 +202,24 @@ gautschi-allocate-update() {
   echo "Ready"
 }
 
-# Open a gautschi objview server in the Windows browser.
-# Run `objview mesh.obj` on the cluster, then paste the `objtunnel <node> <port>/<token>` it prints.
-objtunnel() {
-  if [[ -z "$1" || -z "$2" ]]; then
-    echo "usage: objtunnel <node> <port>/<token>"
-    return 1
+# Open the gautschi objview viewer in the Windows browser.
+# Starts the server and a background tunnel when needed. Leave the tab open:
+# running `objview <file>` on the cluster (any node) shows the file in it.
+objview() {
+  local cache="$HOME/.cache/objview-gautschi" port token
+  [[ -f "$cache" ]] && read -r port token < "$cache"
+  if [[ -z "$token" ]] || ! curl -sf -o /dev/null --max-time 3 "http://localhost:${port}/${token}/api/ping"; then
+    echo "Starting objview on gautschi..."
+    mkdir -p "${cache:h}"
+    ssh gautschi '~/dotfiles/bin/objview --url' 2>/dev/null | tail -1 > "$cache"
+    read -r port token < "$cache"
+    if [[ -z "$token" ]]; then
+      echo "objview: could not start the server on gautschi"
+      return 1
+    fi
+    # Drop a stale tunnel (e.g. after the laptop slept) and open a new one
+    pkill -f "ssh -fN -L ${port}:127.0.0.1:${port}" 2>/dev/null
+    ssh -fN -L "${port}:127.0.0.1:${port}" -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 gautschi 2>/dev/null || return 1
   fi
-  local node=${1%%.*} port=${2%%/*} token=${2#*/}
-  [[ "$token" == "$2" ]] && token=""
-  local -a target
-  if [[ "$node" == login07 ]]; then
-    target=(gautschi)
-  elif [[ "$node" == login* ]]; then
-    target=("${node}.gautschi.rcac.purdue.edu")
-  else
-    target=(-J gautschi "${node}.gautschi.rcac.purdue.edu")
-  fi
-  local url="http://localhost:${port}/${token:+$token/}"
-  echo "Tunneling ${node}:${port} → ${url}  (Ctrl-C to stop)"
-  # Open the browser only once the tunnel answers (login can take a few seconds)
-  (for _ in {1..60}; do
-    curl -s -o /dev/null "$url" && { explorer.exe "$url"; break; }
-    sleep 0.5
-  done) &!
-  ssh -N -o ExitOnForwardFailure=yes -L "${port}:127.0.0.1:${port}" "${target[@]}"
+  explorer.exe "http://localhost:${port}/${token}/"
 }

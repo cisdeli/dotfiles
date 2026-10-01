@@ -201,3 +201,26 @@ gautschi-allocate-update() {
   fi
   echo "Ready"
 }
+
+# Open a gautschi objview server in the Windows browser.
+# Run `objview mesh.obj` on the cluster, then paste the `objtunnel <node> <port>/<token>` it prints.
+objtunnel() {
+  if [[ -z "$1" || -z "$2" ]]; then
+    echo "usage: objtunnel <node> <port>/<token>"
+    return 1
+  fi
+  local node=${1%%.*} port=${2%%/*} token=${2#*/}
+  [[ "$token" == "$2" ]] && token=""
+  local -a target
+  if [[ "$node" == login07 ]]; then
+    target=(gautschi)
+  elif [[ "$node" == login* ]]; then
+    target=("${node}.gautschi.rcac.purdue.edu")
+  else
+    target=(-J gautschi "${node}.gautschi.rcac.purdue.edu")
+  fi
+  local url="http://localhost:${port}/${token:+$token/}"
+  echo "Tunneling ${node}:${port} → ${url}  (Ctrl-C to stop)"
+  (sleep 3 && explorer.exe "$url") &!
+  ssh -N -o ExitOnForwardFailure=yes -L "${port}:127.0.0.1:${port}" "${target[@]}"
+}

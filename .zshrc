@@ -221,6 +221,10 @@ objtunnel() {
   fi
   local url="http://localhost:${port}/${token:+$token/}"
   echo "Tunneling ${node}:${port} → ${url}  (Ctrl-C to stop)"
-  (sleep 3 && explorer.exe "$url") &!
+  # Open the browser only once the tunnel answers (login can take a few seconds)
+  (for _ in {1..60}; do
+    curl -s -o /dev/null "$url" && { explorer.exe "$url"; break; }
+    sleep 0.5
+  done) &!
   ssh -N -o ExitOnForwardFailure=yes -L "${port}:127.0.0.1:${port}" "${target[@]}"
 }

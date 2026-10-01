@@ -131,3 +131,7 @@ export HF_HUB_CACHE="/depot/ciampitti/apps/envs/pmagalh/huggingface/hub"
 
 # For Glow and other apps
 export PATH="/depot/ciampitti/apps:$PATH"
+
+# Node
+export PATH="$HOME/.node/bin:$PATH"
+export PATH="$HOME/.npm-global/bin:$PATH"

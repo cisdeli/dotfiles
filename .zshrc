@@ -135,3 +135,6 @@ export PATH="/depot/ciampitti/apps:$PATH"
 # Node
 export PATH="$HOME/.node/bin:$PATH"
 export PATH="$HOME/.npm-global/bin:$PATH"
+
+# Dotfiles scripts (objview, ...)
+export PATH="$HOME/dotfiles/bin:$PATH"
